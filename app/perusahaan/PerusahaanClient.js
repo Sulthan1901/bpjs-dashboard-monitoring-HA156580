@@ -52,6 +52,7 @@ export default function PerusahaanClient({ user, profile }) {
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [realtimeFlash, setRealtimeFlash] = useState(false)
+  const [pendingUpdates, setPendingUpdates] = useState(0)  // jumlah update yang menunggu
   const [adminList, setAdminList] = useState([])
 
   useEffect(() => { fetch() }, [])
@@ -71,16 +72,24 @@ export default function PerusahaanClient({ user, profile }) {
     return () => clearTimeout(t)
   }, [searchInput])
 
-  // Realtime
+  // Realtime — hanya notifikasi, TIDAK auto-refresh tabel
+  // agar user yang sedang edit tidak terganggu perubahan urutan
   usePerusahaanRealtime({
     supervisorId: isSupervisor ? user.id : null,
     assignedTo: isAdmin ? user.id : null,
-    onChange: () => {
+    onChange: ({ eventType }) => {
       setRealtimeFlash(true)
-      setTimeout(() => setRealtimeFlash(false), 3000)
-      fetch()
+      setTimeout(() => setRealtimeFlash(false), 2000)
+      // Tambah counter update yang menunggu (hanya INSERT & UPDATE, bukan DELETE sendiri)
+      setPendingUpdates(prev => prev + 1)
     },
   })
+
+  // User klik "Muat ulang" → baru fetch + reset counter
+  const handleLoadPending = () => {
+    setPendingUpdates(0)
+    fetch()
+  }
 
   const handleEdit = (row) => { setEditData(row); setShowForm(true) }
   const handleCloseForm = () => { setShowForm(false); setEditData(null) }
@@ -157,7 +166,7 @@ export default function PerusahaanClient({ user, profile }) {
         <div className="flex items-center gap-2 ml-auto">
           <RealtimeIndicator active={realtimeFlash} />
 
-          <button onClick={() => fetch()} disabled={loading}
+          <button onClick={handleLoadPending} disabled={loading}
             className="btn btn-ghost p-2.5" title="Refresh">
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -281,6 +290,21 @@ export default function PerusahaanClient({ user, profile }) {
             </span>
           )}
         </div>
+      )}
+
+      {/* Banner: ada update menunggu */}
+      {pendingUpdates > 0 && (
+        <button
+          onClick={handleLoadPending}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium transition-all hover:opacity-90 animate-fade-in"
+          style={{
+            background: 'linear-gradient(135deg, rgba(14,165,233,0.15), rgba(139,92,246,0.1))',
+            border: '1px solid rgba(14,165,233,0.3)',
+            color: '#38bdf8',
+          }}>
+          <RefreshCw size={14} />
+          {pendingUpdates} pembaruan tersedia — klik untuk memuat ulang
+        </button>
       )}
 
       {/* Table card */}
