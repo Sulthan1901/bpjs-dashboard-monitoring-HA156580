@@ -5,7 +5,7 @@ import { logActivity, detectChangedFields, ACTION_TYPES } from './activityLog'
 const TABLE = 'perusahaan_binaan'
 
 export const perusahaanService = {
-  async getAll({ page = 1, limit = 20, search = '', status = '', userId = null, isAdmin = false, isSupervisor = false, supervisorId = null } = {}) {
+  async getAll({ page = 1, limit = 20, search = '', status = '', sipp = '', adminId = '', userId = null, isAdmin = false, isSupervisor = false, supervisorId = null } = {}) {
     const supabase = createClient()
     const from = (page - 1) * limit
     const to = from + limit - 1
@@ -18,10 +18,8 @@ export const perusahaanService = {
       .range(from, to)
 
     if (isSupervisor && supervisorId) {
-      // Supervisor lihat semua data dalam group-nya
       query = query.eq('supervisor_id', supervisorId)
     } else if (isAdmin && supervisorId) {
-      // Admin lihat semua data dalam group supervisornya (bukan hanya milik sendiri)
       query = query.eq('supervisor_id', supervisorId)
     } else if (userId) {
       query = query.eq('assigned_to', userId)
@@ -29,6 +27,8 @@ export const perusahaanService = {
 
     if (search) query = query.or(`nama_perusahaan.ilike.%${search}%,npp.ilike.%${search}%,nama_pic.ilike.%${search}%`)
     if (status) query = query.eq('status_kontak', status)
+    if (sipp) query = query.eq('status_sipp', sipp)
+    if (adminId) query = query.eq('assigned_to', adminId)
 
     const { data, error, count } = await query
     if (error) throw error
@@ -176,7 +176,7 @@ function triggerEmailNotification(payload) {
   } catch {}
 }
 
-export async function getAllForExport({ search = '', status = '', userId = null, isAdmin = false, isSupervisor = false, supervisorId = null, adminId = '' } = {}) {
+export async function getAllForExport({ search = '', status = '', sipp = '', adminId = '', userId = null, isAdmin = false, isSupervisor = false, supervisorId = null } = {}) {
   const supabase = createClient()
   const BATCH = 1000
   let allData = []
@@ -198,6 +198,7 @@ export async function getAllForExport({ search = '', status = '', userId = null,
     if (adminId) query = query.eq('assigned_to', adminId)
     if (search) query = query.or(`nama_perusahaan.ilike.%${search}%,npp.ilike.%${search}%,nama_pic.ilike.%${search}%`)
     if (status) query = query.eq('status_kontak', status)
+    if (sipp) query = query.eq('status_sipp', sipp)
 
     const { data, error } = await query
     if (error) throw error

@@ -9,6 +9,8 @@ export function usePerusahaan({ userId, isAdmin, isSupervisor, supervisorId }) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [sippFilter, setSippFilter] = useState('')
+  const [adminFilter, setAdminFilter] = useState('')
   const limit = 20
 
   const fetch = useCallback(async (overrides = {}) => {
@@ -19,6 +21,8 @@ export function usePerusahaan({ userId, isAdmin, isSupervisor, supervisorId }) {
         limit,
         search: overrides.search ?? search,
         status: overrides.status ?? statusFilter,
+        sipp: overrides.sipp ?? sippFilter,
+        adminId: overrides.adminId ?? adminFilter,
         userId,
         isAdmin,
         isSupervisor,
@@ -31,7 +35,7 @@ export function usePerusahaan({ userId, isAdmin, isSupervisor, supervisorId }) {
     } finally {
       setLoading(false)
     }
-  }, [page, search, statusFilter, userId, isAdmin, isSupervisor, supervisorId])
+  }, [page, search, statusFilter, sippFilter, adminFilter, userId, isAdmin, isSupervisor, supervisorId])
 
   const create = async (payload, actorInfo) => {
     const result = await perusahaanService.create(payload, actorInfo)
@@ -55,15 +59,23 @@ export function usePerusahaan({ userId, isAdmin, isSupervisor, supervisorId }) {
   }
 
   const handleSearch = (val) => {
-    setSearch(val)
-    setPage(1)
+    setSearch(val); setPage(1)
     fetch({ search: val, page: 1 })
   }
 
   const handleStatusFilter = (val) => {
-    setStatusFilter(val)
-    setPage(1)
+    setStatusFilter(val); setPage(1)
     fetch({ status: val, page: 1 })
+  }
+
+  const handleSippFilter = (val) => {
+    setSippFilter(val); setPage(1)
+    fetch({ sipp: val, page: 1 })
+  }
+
+  const handleAdminFilter = (val) => {
+    setAdminFilter(val); setPage(1)
+    fetch({ adminId: val, page: 1 })
   }
 
   const handlePageChange = (p) => {
@@ -71,9 +83,18 @@ export function usePerusahaan({ userId, isAdmin, isSupervisor, supervisorId }) {
     fetch({ page: p })
   }
 
+  const resetFilters = () => {
+    setSearch(''); setStatusFilter(''); setSippFilter(''); setAdminFilter(''); setPage(1)
+    fetch({ search: '', status: '', sipp: '', adminId: '', page: 1 })
+  }
+
+  const hasActiveFilters = !!(search || statusFilter || sippFilter || adminFilter)
+
   return {
-    data, count, loading, page, search, statusFilter, limit,
+    data, count, loading, page, limit,
+    search, statusFilter, sippFilter, adminFilter,
     fetch, create, update, remove,
-    handleSearch, handleStatusFilter, handlePageChange,
+    handleSearch, handleStatusFilter, handleSippFilter, handleAdminFilter,
+    handlePageChange, resetFilters, hasActiveFilters,
   }
 }
