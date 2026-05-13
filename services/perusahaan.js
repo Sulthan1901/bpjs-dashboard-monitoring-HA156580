@@ -131,7 +131,8 @@ export const perusahaanService = {
       perusahaanNama = old?.nama_perusahaan || ''
       supervisorId = old?.supervisor_id || supervisorId
     }
-    const { error } = await supabase.from(TABLE).update({ deleted_at: new Date().toISOString() }).eq('id', id)
+    // Gunakan RPC SECURITY DEFINER untuk bypass RLS issue pada soft delete
+    const { error } = await supabase.rpc('soft_delete_perusahaan', { p_id: id })
     if (error) throw error
 
     if (actorInfo) {
